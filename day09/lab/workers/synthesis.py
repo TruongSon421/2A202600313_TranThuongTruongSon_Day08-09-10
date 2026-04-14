@@ -16,6 +16,7 @@ Gọi độc lập để test:
     python workers/synthesis.py
 """
 import os
+import json
 
 # Load environment variables
 try:
@@ -34,6 +35,14 @@ Quy tắc nghiêm ngặt:
 3. Trích dẫn nguồn cuối mỗi câu quan trọng: [tên_file].
 4. Trả lời súc tích, có cấu trúc. Không dài dòng.
 5. Nếu có exceptions/ngoại lệ → nêu rõ ràng trước khi kết luận.
+
+QUAN TRỌNG: ĐỊNH DẠNG ĐẦU RA
+Bạn BẮT BUỘC phải trả kết quả theo đúng chuẩn JSON với cấu trúc dưới đây (KHÔNG dùng markdown backticks, KHÔNG in ra text nào khác ngoài JSON):
+{
+    "answer": "Câu trả lời của bạn, có thể xuống dòng bằng ký tự \\n",
+    "confidence": 0.85
+}
+Trong đó "confidence" là số thực từ 0.0 đến 1.0 (1.0 là cao nhất, < 0.4 là khi thông tin thiếu).
 """
 
 
@@ -133,8 +142,7 @@ def _estimate_confidence(chunks: list, answer: str, policy_result: dict) -> floa
 
 def synthesize(task: str, chunks: list, policy_result: dict) -> dict:
     """
-    Tổng hợp câu trả lời từ chunks và policy context.
-
+    Tổng hợp câu trả lời từ chunks và policy context. Tham khảo LLM làm LLM-as-a-Judge.
     Returns:
         {"answer": str, "sources": list, "confidence": float}
     """
@@ -149,16 +157,38 @@ def synthesize(task: str, chunks: list, policy_result: dict) -> dict:
 
 {context}
 
-Hãy trả lời câu hỏi dựa vào tài liệu trên."""
+Hãy trả lời câu hỏi dựa vào tài liệu (đảm bảo xuất JSON format)."""
         }
     ]
 
-    answer = _call_llm(messages)
+    llm_output = _call_llm(messages)
+    
+    # Parse JSON để lấy answer và confidence
+    final_answer = llm_output
+    confidence = 0.0
+    
+    try:
+        cleaned = llm_output.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:-3].strip()
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:-3].strip()
+            
+        data = json.loads(cleaned)
+        final_answer = data.get("answer", llm_output)
+        confidence = float(data.get("confidence", 0.0))
+        
+        # Nếu model rớt confidence về 0.0, fallback về thuật toán tay
+        if confidence == 0.0:
+            confidence = _estimate_confidence(chunks, final_answer, policy_result)
+    except Exception as e:
+        print(f"⚠️ Fail to parse JSON LLM output: {e}")
+        confidence = _estimate_confidence(chunks, final_answer, policy_result)
+
     sources = list({c.get("source", "unknown") for c in chunks})
-    confidence = _estimate_confidence(chunks, answer, policy_result)
 
     return {
-        "answer": answer,
+        "answer": final_answer,
         "sources": sources,
         "confidence": confidence,
     }
