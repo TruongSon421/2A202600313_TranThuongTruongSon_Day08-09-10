@@ -160,7 +160,7 @@ def human_review_node(state: AgentState) -> AgentState:
     state["workers_called"].append("human_review")
 
     # Placeholder: tự động approve để pipeline tiếp tục
-    print(f"\n⚠️  HITL TRIGGERED")
+    print(f"\nHITL TRIGGERED")
     print(f"   Task: {state['task']}")
     print(f"   Reason: {state['route_reason']}")
     print(f"   Action: Auto-approving in lab mode (set hitl_triggered=True)\n")
@@ -373,4 +373,4 @@ if __name__ == "__main__":
         trace_file = save_trace(result)
         print(f"  Trace saved → {trace_file}")
 
-    print("\n✅ graph.py test complete. Implement TODO sections in Sprint 1 & 2.")
+    print("\n graph.py test complete. Implement TODO sections in Sprint 1 & 2.")

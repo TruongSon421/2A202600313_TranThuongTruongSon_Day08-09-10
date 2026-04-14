@@ -85,7 +85,7 @@ retrieval_mode = "hybrid"   # Dense + BM25 với RRF (dense_weight=0.6, sparse_w
 
 ---
 
-## Variant 2 (nếu có thời gian)
+## Variant 2 ()
 
 **Ngày:** 2026-04-13  
 **Biến thay đổi:** Điều chỉnh trọng số hybrid (dense/sparse): 0.6/0.4 → 0.8/0.2  
@@ -137,10 +137,10 @@ sparse_weight = 0.2
 
 ---
 
-## Variant 3 (Sprint 4 - Prompt v2 + tăng top-k)
+## Variant 3 (Sprint 4 - tăng top-k)
 
 **Ngày:** 2026-04-13  
-**Biến thay đổi:** Hybrid 0.6/0.4 + tăng `top_k_search/top_k_select` (10/3 → 15/5) + prompt grounded v2  
+**Biến thay đổi:** Hybrid 0.6/0.4 + tăng `top_k_search/top_k_select` (10/3 → 15/5)   
 **Lý do chọn biến này:**
 > Sau khi chỉnh prompt để ép trả lời đủ từng vế câu hỏi, nhóm tăng top-k để mở rộng evidence pool,
 > kỳ vọng tăng completeness mà vẫn giữ faithfulness.
@@ -153,7 +153,6 @@ top_k_select = 5
 use_rerank = False
 dense_weight = 0.6
 sparse_weight = 0.4
-prompt = grounded_prompt_v2 (multi-requirement, partial-missing handling)
 ```
 
 **Scorecard Variant 3 (theo run mới):**

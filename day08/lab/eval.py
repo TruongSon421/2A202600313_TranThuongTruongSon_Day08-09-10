@@ -49,8 +49,8 @@ BASELINE_CONFIG = {
 # TODO Sprint 4: Cập nhật VARIANT_CONFIG theo variant nhóm đã implement
 VARIANT_CONFIG = {
     "retrieval_mode": "hybrid",   # Hoặc "dense" nếu chỉ đổi rerank
-    "top_k_search": 15,
-    "top_k_select": 5,
+    "top_k_search": 10,
+    "top_k_select": 3,
     "use_rerank": False,          # Giữ nguyên với baseline để chỉ đổi 1 biến (retrieval_mode)
     "dense_weight": 0.6,
     "sparse_weight": 0.4,

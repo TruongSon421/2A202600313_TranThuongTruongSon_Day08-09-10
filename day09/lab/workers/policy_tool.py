@@ -17,37 +17,57 @@ Gọi độc lập để test:
 """
 
 import os
-import sys
+import asyncio
+from datetime import datetime
 from typing import Optional
 
 WORKER_NAME = "policy_tool_worker"
 
+# MCP server URL — phải khớp với mcp.run(transport="streamable-http")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
+
 
 # ─────────────────────────────────────────────
-# MCP Client — Sprint 3: Thay bằng real MCP call
+# MCP Client — dùng langchain_mcp_adapters
 # ─────────────────────────────────────────────
+
+async def _call_mcp_tool_async(tool_name: str, tool_input: dict) -> dict:
+    """Gọi một MCP tool cụ thể qua langchain_mcp_adapters."""
+    from mcp import ClientSession
+    from mcp.client.streamable_http import streamablehttp_client
+    from langchain_mcp_adapters.tools import load_mcp_tools
+
+    async with streamablehttp_client(MCP_SERVER_URL) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            tools = await load_mcp_tools(session)
+
+            # Tìm tool theo tên và invoke
+            tool = next((t for t in tools if t.name == tool_name), None)
+            if tool is None:
+                available = [t.name for t in tools]
+                return {
+                    "tool": tool_name,
+                    "input": tool_input,
+                    "output": None,
+                    "error": {"code": "TOOL_NOT_FOUND", "reason": f"Tool '{tool_name}' không tồn tại. Available: {available}"},
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+            output = await tool.ainvoke(tool_input)
+            return {
+                "tool": tool_name,
+                "input": tool_input,
+                "output": output,
+                "error": None,
+                "timestamp": datetime.now().isoformat(),
+            }
+
 
 def _call_mcp_tool(tool_name: str, tool_input: dict) -> dict:
-    """
-    Gọi MCP tool.
-
-    Sprint 3 TODO: Implement bằng cách import mcp_server hoặc gọi HTTP.
-
-    Hiện tại: Import trực tiếp từ mcp_server.py (trong-process mock).
-    """
-    from datetime import datetime
-
+    """Sync wrapper cho _call_mcp_tool_async."""
     try:
-        # TODO Sprint 3: Thay bằng real MCP client nếu dùng HTTP server
-        from mcp_server import dispatch_tool
-        result = dispatch_tool(tool_name, tool_input)
-        return {
-            "tool": tool_name,
-            "input": tool_input,
-            "output": result,
-            "error": None,
-            "timestamp": datetime.now().isoformat(),
-        }
+        return asyncio.run(_call_mcp_tool_async(tool_name, tool_input))
     except Exception as e:
         return {
             "tool": tool_name,
