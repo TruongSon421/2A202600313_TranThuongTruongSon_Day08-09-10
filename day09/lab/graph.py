@@ -298,8 +298,9 @@ def run_graph(task: str) -> AgentState:
     # LangGraph invoke
     result = _graph.invoke(state)
     
-    # Calculate latency
+    # Calculate latency and add timestamp
     result["latency_ms"] = int((time.time() - start) * 1000)
+    result["timestamp"] = datetime.now().isoformat()
     result["history"].append(f"[graph] completed in {result['latency_ms']}ms")
     
     return result
