@@ -32,6 +32,8 @@ WORKER_NAME = "policy_tool_worker"
 
 # MCP server URL — phải khớp với mcp.run(transport="streamable-http")
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
+# MCP_SERVER_MODE: "mock" (default) hoặc "http" (real server)
+MCP_SERVER_MODE = os.getenv("MCP_SERVER_MODE", "mock").strip().lower()
 
 
 # ─────────────────────────────────────────────
@@ -72,17 +74,63 @@ async def _call_mcp_tool_async(tool_name: str, tool_input: dict) -> dict:
 
 
 def _call_mcp_tool(tool_name: str, tool_input: dict) -> dict:
-    """Sync wrapper cho _call_mcp_tool_async."""
-    try:
-        return asyncio.run(_call_mcp_tool_async(tool_name, tool_input))
-    except Exception as e:
-        return {
-            "tool": tool_name,
-            "input": tool_input,
-            "output": None,
-            "error": {"code": "MCP_CALL_FAILED", "reason": str(e)},
-            "timestamp": datetime.now().isoformat(),
-        }
+    """Sync wrapper — tự động chọn mock hoặc HTTP dựa vào MCP_SERVER_MODE."""
+    if MCP_SERVER_MODE == "http":
+        try:
+            return asyncio.run(_call_mcp_tool_async(tool_name, tool_input))
+        except Exception as e:
+            return {
+                "tool": tool_name,
+                "input": tool_input,
+                "output": None,
+                "error": {"code": "MCP_CALL_FAILED", "reason": str(e)},
+                "timestamp": datetime.now().isoformat(),
+            }
+    else:
+        # Mock mode: trả về kết quả giả lập, không cần server chạy
+        return _mock_mcp_tool(tool_name, tool_input)
+
+
+def _mock_mcp_tool(tool_name: str, tool_input: dict) -> dict:
+    """Mock MCP tool calls — dùng khi MCP_SERVER_MODE=mock."""
+    mock_outputs = {
+        "search_kb": {
+            "chunks": [
+                {"text": "[MOCK] Kết quả tìm kiếm KB cho: " + tool_input.get("query", ""), "source": "mock_kb", "score": 0.85}
+            ],
+            "sources": ["mock_kb"],
+            "total_found": 1,
+        },
+        "get_ticket_info": {
+            "ticket_id": "IT-9847",
+            "priority": "P1",
+            "title": "[MOCK] API Gateway down",
+            "status": "in_progress",
+            "escalated": True,
+        },
+        "check_access_permission": {
+            "access_level": tool_input.get("access_level", 1),
+            "can_grant": True,
+            "required_approvers": ["Line Manager", "IT Admin"],
+            "emergency_override": tool_input.get("is_emergency", False),
+        },
+        "create_ticket": {
+            "ticket_id": "IT-MOCK-001",
+            "priority": tool_input.get("priority", "P2"),
+            "title": tool_input.get("title", ""),
+            "status": "open",
+            "note": "MOCK ticket",
+        },
+    }
+    output = mock_outputs.get(tool_name, {"note": f"[MOCK] Tool '{tool_name}' không có mock data."})
+    return {
+        "tool": tool_name,
+        "input": tool_input,
+        "output": output,
+        "error": None,
+        "mode": "mock",
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 # ─────────────────────────────────────────────
