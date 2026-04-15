@@ -7,5 +7,3 @@ __pycache__/
 chroma_db/
 .pytest_cache/
 
-# Allow log files in artifacts/logs (required for grading)
-!artifacts/logs/*.log
