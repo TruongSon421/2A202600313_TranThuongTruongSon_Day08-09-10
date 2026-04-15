@@ -9,7 +9,7 @@
 
 ### Symptom
 
-**Alert:** Slack #data-quality: "Freshness check FAIL: age_hours=114, sla_hours=24"
+**Alert:** Slack #data-quality: "Freshness check FAIL: age_hours=122.552, sla_hours=24"
 
 **Observable behavior:**
 
